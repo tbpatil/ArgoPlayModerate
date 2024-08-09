@@ -1,0 +1,41 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Workflow
+metadata:
+  generateName: buildkit-docker-build-
+spec:
+  entrypoint: build-workflow
+  volumes:
+  - name: work
+    emptyDir: {}
+  templates:
+  - name: build-workflow
+    dag:
+      tasks:
+      - name: build
+        template: build
+  - name: build
+    container:
+      image: moby/buildkit:v0.9.3-rootless
+      command: [sh, -c]
+      args:
+        - |
+           git clone --depth 1 https://github.com/tbpatil/ArgoPlayModerate.git /work/ArgoPlayModerate
+           echo "Listing /work directory from build step:"
+           ls -R /work
+           if [ -d "/work/ArgoPlayModerate/GUI" ]; then
+             buildctl-daemonless.sh build \
+               --frontend dockerfile.v0 \
+               --local context=/work/ArgoPlayModerate/GUI \
+               --local dockerfile=/work/ArgoPlayModerate/GUI \
+               --output type=docker,name=tbpatil19/breastcancerclassifier:version2.0,push=true
+           else
+             echo "GUI directory not found. Listing /work/ArgoPlayModerate:"
+             ls -R /work/ArgoPlayModerate
+             exit 1
+           fi
+      volumeMounts:
+        - name: work
+          mountPath: /work
+      env:
+        - name: BUILDKITD_FLAGS
+          value: --oci-worker-no-process-sandbox

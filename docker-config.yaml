@@ -1,0 +1,9 @@
+apiVersion: v1
+kind: Secret
+metadata:
+  name: docker-config
+  namespace: argo
+data:
+  username: dGJwYXRpbDE5
+  password: TWljcm9zb2Z0QDE5MTEyMDAz
+  config.json: ewoJImF1dGhzIjogewoJCSJodHRwczovL2luZGV4LmRvY2tlci5pby92MS8iOiB7CiAgICAgICAgICAgICAgICAgICAgImF1dGgiOiAiZEdKd1lYUnBiREU1T2sxcFkzSnZjMjltZEVBeE9URXhNakF3TXc9PSIKICAgICAgICAgICAgICAgIH0KCX0KfQo=

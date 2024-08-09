@@ -1,0 +1,86 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Workflow
+metadata:
+  name: build-sign-workflow
+spec:
+  entrypoint: main
+  volumes:
+    - name: docker-config
+      secret:
+        secretName: docker-config
+    - name: dind-storage
+      emptyDir: {}
+    - name: cosign-pub
+      secret:
+        secretName: cosign-secret
+  templates:
+    - name: main
+      steps:
+        - - name: docker-login-and-sign
+            templateRef:
+              name: sign-workflow-template
+              template: docker-login-and-sign
+        - - name: verify
+            templateRef:
+              name: sign-workflow-template
+              template: verify
+
+
+
+
+# apiVersion: argoproj.io/v1alpha1
+# kind: Workflow
+# metadata:
+#   generateName: build-sign-workflow-
+# spec:
+#   entrypoint: main
+#   volumes:
+#     - name: work
+#       emptyDir: {}
+#     - name: docker-config
+#       secret:
+#         secretName: docker-config
+#     - name: dind-storage
+#       emptyDir: {}
+#   templates:
+#     - name: main
+#       dag:
+#         tasks:
+#           - name: docker-login-and-sign
+#             template: docker-login-and-sign
+
+#     - name: docker-login-and-sign
+#       container:
+#         image: docker:dind
+#         command: [sh, -c]
+#         args:
+#           - |
+#             apk add --no-cache cosign
+#             dockerd &
+#             sleep 5
+#             echo "Authenticating with Docker Hub"
+#             echo $DOCKER_PASSWORD | docker login -u $DOCKER_USERNAME --password-stdin
+#             echo "Signing the Docker image"
+#             COSIGN_DOCKER_MEDIA_TYPES=1 cosign sign --yes tbpatil19/breastcancerclassifier:version1.0
+#         env:
+#           - name: DOCKER_USERNAME
+#             valueFrom:
+#               secretKeyRef:
+#                 name: docker-config
+#                 key: username
+#           - name: DOCKER_PASSWORD
+#             valueFrom:
+#               secretKeyRef:
+#                 name: docker-config
+#                 key: password
+#         securityContext:
+#           privileged: true
+#         volumeMounts:
+#           - name: work
+#             mountPath: /work
+#           - name: docker-config
+#             mountPath: /root/.docker/config.json
+#             subPath: config.json
+#             readOnly: true
+#           - name: dind-storage
+#             mountPath: /var/lib/docker

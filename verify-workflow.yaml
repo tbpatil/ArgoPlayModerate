@@ -1,0 +1,71 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Workflow
+metadata:
+  generateName: build-verify-workflow-
+  namespace: argo
+spec:
+  entrypoint: main
+  volumes:
+    - name: work
+      emptyDir: {}
+    - name: cosign-pub
+      secret:
+        secretName: cosign-secret
+    # - name: docker-config
+    #   secret:
+    #     secretName: docker-config
+  templates:
+    - name: main
+      dag:
+        tasks:
+          # - name: docker-permission
+          #   template: docker-permission
+          #   dependencies: []
+          - name: verify
+            template: verify
+            # dependencies: [docker-permission]
+
+    # - name: docker-permission
+    #   container:
+    #     image: docker:latest
+    #     command: [sh, -c]
+    #     args:
+    #       - |
+    #         echo "Authenticating with Docker Hub"
+    #         docker login -u $DOCKER_USERNAME -p $DOCKER_PASSWORD
+    #     env:
+    #       - name: DOCKER_USERNAME
+    #         valueFrom:
+    #           secretKeyRef:
+    #             name: docker-config
+    #             key: username
+    #       - name: DOCKER_PASSWORD
+    #         valueFrom:
+    #           secretKeyRef:
+    #             name: docker-config
+    #             key: password
+    #     volumeMounts:
+    #       - name: docker-config
+    #         mountPath: /root/.docker/config.json
+    #         subPath: config.json
+    #         readOnly: true
+
+    - name: verify
+      container:
+        image: bitnami/cosign:latest
+        command: [sh, -c]
+        args:
+          - |
+            echo "Verifying the signed image"
+            cosign verify --certificate-identity toniya.lnu@acceldata.io --certificate-oidc-issuer https://accounts.google.com tbpatil19/breastcancerclassifier:version1.0
+        volumeMounts:
+          - name: work
+            mountPath: /work
+          - name: cosign-pub
+            mountPath: /etc/cosign
+        env:
+          - name: COSIGN_PASSWORD
+            valueFrom:
+              secretKeyRef:
+                name: cosign-secret
+                key: password
